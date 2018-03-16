@@ -1,3 +1,4 @@
+#!python2.7
 # -*- coding: utf-8 -*-
 """
 Created on Sun Mar 11 17:48:06 2018
@@ -11,14 +12,15 @@ from scrapy.selector import Selector
 
 class PaperSpider(scrapy.Spider):
     name = 'Walters'
-    pubmedIds = open("C:\\Users\\eccrawford\\Documents\\CISC 490\\citedPapers.csv", "rb")
+    f = "C:\\Users\\eccrawford\\Documents\\CISC 490\\citedPapers.csv"
+    pubmedIds = open(f, "rb")
     
     def generateStartURLs(pubmedData):
       urlsList = []
       pubmed = "https://www.ncbi.nlm.nih.gov/pubmed/"
       data = csv.reader(pubmedData, delimiter=",")
       
-      papersDict = {row[0]: row[1:] for row in data}
+      papersDict = {row[0]: row[1:] for row in data} #use the first column in the csv as the key (a retracted paper), subsequent columns as the values (papers that cite the retracted paper) of the dictionary
       
       for key in papersDict:
         while '' in papersDict[key]:
@@ -28,18 +30,15 @@ class PaperSpider(scrapy.Spider):
       citedPapers = papersDict.values()
       
       for paper in retractedPapers:
-        urlsList.append(pubmed+str(paper))
+        urlsList.append(pubmed+str(paper)) #generate the urls of retracted papers
         
       for cited in citedPapers:
         for c in cited:
-          urlsList.append(pubmed+str(c))
+          urlsList.append(pubmed+str(c)) # generate urls of the cited papers
+          
       return urlsList, papersDict
     
     start_urls, papers = generateStartURLs(pubmedIds)
-    
-#    for line in start_urls:
-#      with open("urls.txt", "a") as f1:
-#        f1.write(line+"\n")
     
     def parse(self, response):
         hxs = Selector(response)
@@ -77,13 +76,6 @@ class PaperSpider(scrapy.Spider):
                 paperCites.append(key) # we've found a retracted paper the current paper cites
 
         info.append(str(currentPaperId))
-        
-        #TO DO:
-        '''
-          create a list of the current paper id, the abstract, and the boolean flags
-          append this list to the master results list
-          for each list in the master results list, this is a new row in the csv
-        '''                  
 
         abstracts = ''.join(hxs.xpath('//abstracttext//text()').extract())
         
@@ -109,16 +101,15 @@ class PaperSpider(scrapy.Spider):
 
         for line in results:
           line[1].encode("utf-8")
-          with open("ahh2.csv", 'a+') as f:
+          with open("output.csv", 'a+') as f:
             text = csv.writer(f, delimiter=',')
             try:
               text.writerow(line)
             except UnicodeEncodeError:
-#              print line
               convert = [l.encode("utf-8") for l in line]
               text.writerow(convert)
             
             
-with open("ahh2.csv", 'a+') as output:
+with open("output.csv", 'a+') as output:
   writer = csv.writer(output)
   writer.writerow(["PaperId", "Abstract", "Retracted", "Cites", "Papers Cited"])
